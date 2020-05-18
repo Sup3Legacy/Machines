@@ -10,6 +10,7 @@ type instruction =
   | IADD of adress * adress * adress (* addition d'entiers des 2e et 3e adress dans la 1ere *)
   | FADD of adress * adress * adress (* de même pour les float *)
   | INC of adress (* Incrémente un entier *)
+  | DEC of adress (* Décrémente un entier *)
   | IMULT of adress * adress * adress (* Multiplie deux entiers *)
   | FMULT of adress * adress * adress (* De même avec des float *)
   | ISUB of adress * adress * adress (* soustrait deux entiers *)
@@ -32,9 +33,10 @@ type instruction =
   | OR of adress * adress * adress (* stocke bool1 || bool2 *)
   | AND of adress * adress * adress (* De même avec && *)
   | NOT of adress * adress (* stocke not(bool) *)
-;;
+  | PRINT of adress (* imprime une donnée de type qcq *)
 
-type data =
+
+and data =
   | F of float
   | I of int
   | C of string (* sera du char dans le futur *)
@@ -73,7 +75,13 @@ let run_instruction mem reg instruction running pointer =
                    match reg.(a) with
                    | I int1 -> reg.(a) <- I (int1 + 1)
                    | _ -> failwith "Type error in INC"
-                 end
+                     end
+  | DEC (Reg a) -> if (a >= m) then failwith "Index error in INC"
+               else begin
+                   match reg.(a) with
+                   | I int1 -> reg.(a) <- I (int1 - 1)
+                   | _ -> failwith "Type error in INC"
+                     end
   | ISUB (Reg r, Reg a, Reg b) -> if (a >= m || b >= m) then failwith "Index error in ISUB"
 else begin
                           match reg.(a), reg.(b) with
@@ -188,12 +196,23 @@ else begin
                                       match reg.(a) with
                                       | B bool1 -> reg.(r) <- B (not bool1)
                                       | _ -> failwith "Type error in OR"
-                                      end
+                            end
+  | PRINT (Reg r) -> if r >= m then failwith "Index error in PRINT"
+                     else
+                       begin
+                       match reg.(r) with
+                       | I int1 -> print_int int1; print_newline ()
+                       | F float1 -> print_float float1; print_newline ()
+                       | C str1 -> print_string str1; print_newline ()
+                       | B bool1 -> if bool1 then print_string "True" else print_string "False"; print_newline ()
+                       | _ -> print_newline ()
+                       end
   | HALT -> print_string "Program halted succesfully"; running := false
   | _ -> print_int !pointer; failwith "Unknown instruction or mismatched types"
 ;;
   
-let empty_machine () = {mem = Array.make 10 E; reg = Array.make 10 E; pointer = ref 0};;                       
+let empty_machine () = {mem = Array.make 10 E; reg = Array.make 10 E; pointer = ref 0};;
+
 let run_bis machine running =
   match machine.mem.(!(machine.pointer)) with
     | N instr -> run_instruction machine.mem machine.reg instr running machine.pointer;
@@ -287,8 +306,55 @@ let slice program = (* Découpe le programme en une liste de lignes *)
   List.rev !res
 ;;
 
-slice "int i = 0; 
-       float a = 0.342;
+let slice_line line =
+  let res = ref [] in
+  let n = String.length line in
+  let old_i = ref 0 in
+  for i = 0 to (n - 1) do
+    if line.[i] = ' ' then begin
+        res := (strip (String.sub line !old_i (i - !old_i))) :: !res;
+        old_i := i;
+      end
+  done;
+  if !old_i < n then res := (strip (String.sub line !old_i (n  - !old_i))) :: !res;
+  List.rev !res
+;;
+
+slice_line "int a = 0";;
+
+let array_of_list list =
+  let n = length list in
+  let liste = ref list in
+  let premier =
+    match list with
+    | [] -> failwith "Liste vide"
+    | t :: _ -> t
+  in
+  let res = Array.make n premier in
+  for i = 0 to (n - 1) do
+    res.(i) <- match !liste with
+               | [] -> failwith "Isse"
+               | t :: q -> liste := q; t
+  done;
+  res
+;;
+
+              
+
+let slice_double program = (* Découpe le programme en arrray de listes de mots *)
+  let sliced = array_of_list (slice program) in
+  let n = Array.length sliced in
+  let res = Array.make n [] in
+  for i = 0 to (n - 1) do
+    res.(i) <- slice_line sliced.(i);
+  done;
+  res
+;;
+
+              
+
+slice_double "int isihdqi 0; 
+       float a 0.342;
        while i < 0 do;
        isse; dsiqo; kl";;
 
@@ -297,3 +363,140 @@ let rec length liste =
   | [] -> 0
   | _ :: q -> 1 + length q
 ;;
+
+
+type dict =
+  | Empty
+  | Node of ((string * adress) * dict * dict)
+;;
+
+let empty_dict () = Empty;;
+
+let rec add_to_dict dict value = (* val = (str * int) *)
+  let (s, v) = value in
+  match dict with
+  | Empty -> Node (value, Empty, Empty)
+  | Node ((s1, v1), fg, fd) when s1 = s -> failwith "variable already in dict"
+  | Node ((s1, v1), fg, fd) when s < s1 -> Node ((s1, v1), add_to_dict fg value, fd)
+  | Node ((s1, v1), fg, fd) -> Node ((s1, v1), fg, add_to_dict fd value)
+;;
+
+let rec is_in_dict dict str =
+  match dict with
+  | Empty -> false
+  | Node ((s1, _), _, _) when s1 = str -> true
+  | Node ((s1, _), fg, _) when str < s1 -> is_in_dict fg str
+  | Node ((_, _), _, fd) -> is_in_dict fd str
+;;
+
+let rec get_adress dict str =
+  match dict with
+  | Empty -> failwith "variable name not in dict"
+  | Node ((s1, v1), _, _) when s1 = str -> v1
+  | Node ((s1, _), fg, _) when str < s1 -> get_adress fg str
+  | Node ((_, _), _, fd) -> get_adress fd str
+;;
+
+let iso = empty_dict ();;
+
+let iso = add_to_dict iso ("abc", Reg 0);;
+
+is_in_dict iso "abc";;
+
+
+let compile program =
+  let sliced = slice_double program in
+  let n = Array.length sliced in
+  let variable_dict = ref (empty_dict ()) in
+  let mempointer = ref 0 in
+  let regpointer = ref 0 in
+  let reg = Array.make 256 E in (* Taille arbitraire -> /!\ Memory overflow *)
+  let mem = Array.make 256 E in
+  for i = 0 to (n - 1) do
+    let currentLine = array_of_list sliced.(i) in
+    if Array.length currentLine = 0 then () (* Si ligne vide, on passe *)
+    else
+        match currentLine.(0) with
+        | "int" ->
+           if is_in_dict! variable_dict currentLine.(1) then failwith "Variable already declared"
+           else
+             begin
+               variable_dict := add_to_dict !variable_dict (currentLine.(1), Reg !regpointer);
+               mem.(!mempointer) <- N (INIT (Reg !regpointer,  I (int_of_string currentLine.(2))));
+               regpointer := !regpointer + 1;
+               mempointer := !mempointer + 1;
+             end
+        | "float" ->
+           if is_in_dict !variable_dict currentLine.(1) then failwith "Variable already declared"
+           else
+             begin
+               variable_dict := add_to_dict !variable_dict (currentLine.(1), Reg !regpointer);
+               mem.(!mempointer) <- N (INIT (Reg !regpointer,  F (float_of_string currentLine.(2))));
+               regpointer := !regpointer + 1;
+               mempointer := !mempointer + 1;
+             end
+        | "string" ->
+           if is_in_dict !variable_dict currentLine.(1) then failwith "Variable already declared"
+           else
+             begin
+               variable_dict := add_to_dict !variable_dict (currentLine.(1), Reg !regpointer);
+               mem.(!mempointer) <- N (INIT (Reg !regpointer,  C currentLine.(2)));
+               regpointer := !regpointer + 1;
+               mempointer := !mempointer + 1;
+             end
+        | "print" ->
+           if not (is_in_dict !variable_dict currentLine.(1)) then failwith "Unknown variable in print"
+           else
+             begin
+               let ad = get_adress !variable_dict currentLine.(1) in
+               let instr = PRINT ad in
+               mem.(!mempointer) <- N instr;
+               mempointer := !mempointer + 1;
+             end
+        | "inc" ->
+           if not (is_in_dict !variable_dict currentLine.(1)) then failwith "Unknown variable in inc"
+           else
+             begin
+               let ad = get_adress !variable_dict currentLine.(1) in
+               let instr = INC ad in
+               mem.(!mempointer) <- N instr;
+               mempointer := !mempointer + 1;
+             end
+        | "dec" ->
+           if not (is_in_dict !variable_dict currentLine.(1)) then failwith "Unknown variable in dec"
+           else
+             begin
+               let ad = get_adress !variable_dict currentLine.(1) in
+               let instr = DEC ad in
+               mem.(!mempointer) <- N instr;
+               mempointer := !mempointer + 1;
+             end
+        | _ -> ()
+  done;
+  mem.(!mempointer) <- N HALT;
+  let machine = empty_machine () in
+  machine.mem <- mem;
+  machine.reg <- reg;
+  machine
+;;
+
+let machT = "int a 0;
+             float b 1.2;
+             string abc isse;
+             print a;
+             inc a;
+             print a;
+             dec a;
+             print a;
+             print abc;"
+;;
+
+slice_double machT;;
+
+compile machT;;
+
+let machTest = compile machT;;
+
+
+run machTest;;
+machTest;;
