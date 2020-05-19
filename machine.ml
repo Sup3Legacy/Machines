@@ -1,3 +1,10 @@
+(* Création d'un langage machine, fondé sur un jeu d'isntruction *)
+(* Plus bas, les fonctions empty_machine et run permettent de créer des machines, sortes de processeurs virtuels, 
+capables de comprendre ce langage machine *)
+
+(* Encore plus bas, il y a un compilateur.
+Ce compilateur peut compiler un langage haut niveau, créé aussi par mes soins, le 'Bisac' en langage machine*)
+
 type adress =
   | Reg of int
   | Mem of int
