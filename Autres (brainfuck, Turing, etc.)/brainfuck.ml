@@ -1,3 +1,6 @@
+(* Interpréteur Brainfuck *)
+(* Il interprète une chaîne de caractères, 'commande' *)
+
 let interpreter commande ascii=
   let maxDepth = 1000000000 in
   let depth = ref 0 in
