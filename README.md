@@ -27,5 +27,42 @@ IOUT (Reg 1);
 HALT
 ```
 
+# Langage et compilateur
 
-# Machine de Turing
+Bien entendu, ce langage machine, bien qu'_a priori_ fonctionnel, n'est pas pratique à utiliser. C'est pourquoi j'ai commencé l'implémentation d'un compilatuer, capable de compiler un langage de haut niveau, le _Bisac_, langage fortement typé, en ce langage machine virtuel.
+
+Cette partie du projet est pour l'instant en stand-by, m'étant rendu compte que j'ai besoin d'acquérir  certaines connaissances (par exemple la façon dont est implémenté un parser, ou bien les solutions possibles pour gérer des expressions complexes. En effet, lors de l'affectation :
+
+```
+a = 3 * (b / 2) + c;
+```
+
+Chaque opération intermédiaire doit être temporairement stockée dans le registre et je ne sais pas encore comment gérer les déplacement du pointeur dans ces situations.
+
+
+Néanmoins, j'ai obtenu quelques premiers résultats avec un compilateur simplifié. Ce compilateur ne sait pour l'instant compiler que du code comportant des affectations simples et des commandes d'affichage à l'écran.
+
+Par exemple, le code
+
+```
+int a = 0;
+int b = 42;;
+string foo = "bar";
+
+print a;
+inc a;
+print a;
+
+print b;
+dec b;
+print b;
+
+print foo;
+```
+
+peut être compilé en le langage machine virtuel puis exécuté.
+
+Pour gérer les variables, j'utilise une approche statique, où chaque variable distincte rencontrée lors de la compilation se voit attribué une case du registre. Ensuite, lorsque la variable est à nouveau rencontrée, l'opération est remplacée par l'instruction, avec en argument un poitneur vers la case du registre attribuée à la variable.
+Cette approche a l'avantage d'être simple mais l'inconvénient de nécessité que toutes les variables, et en fait toutes les cases mémoire utilisées pendant l'éxecution du programme soient reconnues et listées lors de la compilation.
+
+
