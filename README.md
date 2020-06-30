@@ -1,6 +1,6 @@
-# Machines
+# Machines (voir ```machine.ml```)
 
-Mon but dans ce projet est de simuler le fonctionnement de machines élémentaires. J'ai pour cela exploré plusieurs pistes. Premièrement j'ai implémenté en Ocaml un micro-processeur virtuel puis je me susi concentré sur des machiens plus simples, comem des machines de Turing ou un interpréteur ud langage Brainfuck.
+Mon but dans ce projet est de simuler le fonctionnement de machines élémentaires. J'ai pour cela exploré plusieurs pistes. Premièrement j'ai implémenté en Ocaml un micro-processeur virtuel puis je me suis concentré sur des machines plus simples, comme des machines de Turing ou un interpréteur ud langage Brainfuck.
 
 # Simulation de micro-processeur
 
@@ -62,7 +62,44 @@ print foo;
 
 peut être compilé en le langage machine virtuel puis exécuté.
 
-Pour gérer les variables, j'utilise une approche statique, où chaque variable distincte rencontrée lors de la compilation se voit attribué une case du registre. Ensuite, lorsque la variable est à nouveau rencontrée, l'opération est remplacée par l'instruction, avec en argument un poitneur vers la case du registre attribuée à la variable.
-Cette approche a l'avantage d'être simple mais l'inconvénient de nécessité que toutes les variables, et en fait toutes les cases mémoire utilisées pendant l'éxecution du programme soient reconnues et listées lors de la compilation.
+Pour gérer les variables, j'utilise une approche statique, où chaque variable distincte rencontrée lors de la compilation se voit attribué une case du registre. Ensuite, lorsque la variable est à nouveau rencontrée, l'opération est remplacée par l'instruction, avec en argument un pointeur vers la case du registre attribuée à la variable.
+Cette approche a l'avantage d'être simple mais l'inconvénient de nécessité que toutes les variables, et toutes les cases mémoire utilisées pendant l'éxecution du programme soient reconnues et listées lors de la compilation.
 
 
+# Machines V2 (voir ```machine V2.ml```)
+
+J'ai ensuite tenté une deuxième approche. Au lieu d'utiliser un compilateur naïf et limité, mais simple, je suis en train d'implémenter un compilateur plus complexe mais plus général, permettant de créer un langage de haut niveau complet. 
+
+Ce compilateur utilise une structure "classique", c'est-à-dire : code -> code 'nettoyé' et mis en forme -> tokens -> arbre syntaxique de tokens -> code en langage machine (Dans mon cas, je pense qu'il n'y a pas besoin de langage intermédiaire entre l'arbre syntaxique et le langage machine).
+
+À ce jour (fin juin 2020), j'ai implémenté le tokenizer, qui transforme un code en ```Bisac``` de la forme :
+
+```
+int a = 0;
+float b = 1.2;
+string abc = 'isse';
+print a;
+inc a;
+print a;
+dec a;
+print a;
+print abc;
+int c = ( a + a ) * a;
+```
+
+en un tableau de listes de tokens : 
+
+```ocaml
+[|
+[INT; VARIABLE "a"; AFFECT; CONSTINT 0];
+[FLOAT; VARIABLE "b"; AFFECT; CONSTFLOAT 1.2];
+[STRING; VARIABLE "abc"; AFFECT; CONSTSTRING "isse"];
+[FUNCTION "print"; VARIABLE "a"]; 
+[FUNCTION "inc"; VARIABLE "a"];
+[FUNCTION "print"; VARIABLE "a"]; 
+[FUNCTION "dec"; VARIABLE "a"];
+[FUNCTION "print"; VARIABLE "a"]; 
+[FUNCTION "print"; VARIABLE "abc"];
+[INT; VARIABLE "c"; AFFECT; PARO; VARIABLE "a"; PLUS; VARIABLE "a"; PARC; MULT; VARIABLE "a"]
+|]
+```
